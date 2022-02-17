@@ -7,7 +7,7 @@ For this assignment, you will be tasked with configuring an automated deployment
 
 ## Included Resources
 
-In [this repository](https://github.com/ZenHubHQ/devops-interview) you'll find a tiny `node.js` REST API which simply prints "Hello World!".
+You'll find a tiny `node.js` REST API which simply prints "Hello World!".
 
 ## Requirements
 
