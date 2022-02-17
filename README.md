@@ -1,4 +1,4 @@
-ZenHub DevOps Assignment
+DevOps Assignment
 ------------------------
 
 ## Overview
@@ -39,4 +39,4 @@ A few notes to help you:
 - We are going to make the assumption that you are aware of some of the other facets of operations, and we are not asking or expecting you to implement any monitoring, alerting, or that kind of thing in the exercise.
 - We are passionate about security. Take note of the parts of your code that need to be handled with care and document them appropriately.
 
-If you run into any issues throughout the process or have questions, please reach out to devops@zenhub.com
+
