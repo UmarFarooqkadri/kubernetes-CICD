@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "node-js.fullname" . }}
+  labels:
+    app: {{ include "node-js.name" . }}
+    chart: {{ include "node-js.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec: 
+  replicas: {{ .Values.replicaCount }}
+  selector: 
+    matchLabels: 
+      app: {{ include "node-js.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "node-js.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      {{- if .Values.antiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution: 
+          - labelSelector: 
+              matchExpressions:
+              - key: app
+                operator: In
+                values: 
+                - {{ include "node-js.name" . }}
+              - key: release
+                operator: In
+                values: 
+                - {{ .Release.Name }}
+            topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+      containers: 
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports: 
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "{{ .Values.port }}"
+        - name: PROM_TRACING
+          value: "{{ .Values.promTracing }}"   
+        - name: PUBLIC_URL
+          value: "{{ .Values.publicUrl }}"                      
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+  {{- with .Values.nodeSelector }}          
+    nodeSelector: 
+{{ toYaml . | indent 8 }}      
+  {{- end }}
+  {{- with .Values.tolerations }}
+    tolerations:
+{{ toYaml . | indent 8 }}      
+  {{- end }}

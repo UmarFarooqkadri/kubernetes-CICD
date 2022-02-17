@@ -1,0 +1,86 @@
+name: Build and Deploy to GKE
+
+on: push
+
+jobs:
+
+  build-publish:
+    name: Setup, Build, Publish
+    runs-on: ubuntu-latest
+    container: gcr.io/kaniko-project/executor:debug
+    environment: $CLIENT_ENVIRONMENT
+    env:
+      CLIENT_ACCOUNT_ID: kubernetes-interview-questions #${{ secrets.GKE_PROJECT_PROD }}
+      CLOUD_LOCATION_1: us-central1-c   # TODO: update to cluster zone 
+      CLIENT_CODE: zh
+      CLIENT_DOMAIN_URL: example.com
+      CLOUD_PROVIDER: gke
+      APP_IMAGE_NAME: node-js
+      CLIENT_ENVIRONMENT: production
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      CLOUD_SDK_VERSION: 355.0.0
+      GKE_SA_KEY: ${{ secrets.GKE_SA_KEY }}
+      GOOGLE_APPLICATION_CREDENTIALS: /kaniko/config.json
+    steps:      
+
+
+    # Build the Docker image in Kaniko and push to GCP
+    - name: Kaniko Build and tag node-js image
+      run: |-
+        echo "$GKE_SA_KEY" > "/kaniko/config.json"
+        /kaniko/executor --context git://github.com/UmarFarooqkadri/cc_FarooqKadri_DevOps  --force --dockerfile ./Dockerfile --cache=true --cache-ttl=48h --destination us.gcr.io/$CLIENT_ACCOUNT_ID/$APP_IMAGE_NAME:${GITHUB_SHA}
+
+
+  deploy:
+    needs: build-publish
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: $CLIENT_ENVIRONMENT
+    env:
+      CLIENT_ACCOUNT_ID: kubernetes-interview-questions 
+      CLOUD_LOCATION_1: us-central1-c   # TODO: update to cluster zone
+      CLIENT_CODE: oc
+      CLIENT_DOMAIN_URL: example.com
+      CLOUD_PROVIDER: gke
+      APP_IMAGE_NAME: node-js
+      CLIENT_ENVIRONMENT: production
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      CLOUD_SDK_VERSION: 355.0.0
+      GKE_SA_KEY: ${{ secrets.GKE_SA_KEY }}
+      GOOGLE_APPLICATION_CREDENTIALS: /kaniko/config.json
+
+    steps:      
+    - name: Checkout
+      uses: actions/checkout@v2    
+   
+  # Add the authentication code for GKE
+    - id: get-credentials
+      uses: google-github-actions/get-gke-credentials@main
+      with:
+        cluster_name: nodejs-cluster
+        location: us-central1-c
+        credentials: ${{ secrets.GKE_SA_KEY }}
+
+    - name: Install Helm3
+      uses: azure/setup-helm@v1
+      with:
+        version: v3.6.1
+      # Set up Helm3
+    - name: Set up Helm3
+      run: |-
+        helm repo add incubator https://charts.helm.sh/incubator
+        helm repo add stable https://charts.helm.sh/stable
+    - name: Deploy chart
+      run: |-
+        find "chart/" -name "*.tmpl" -exec bash -c 'envsubst < $1 > ${1%.tmpl}' _ {} \;
+        echo $CLIENT_ENVIRONMENT
+        ls -lrt
+        RELEASE_CHART=node-js
+        echo $RELEASE_CHART
+        helm upgrade --install --debug --wait  --create-namespace --namespace node-js -f chart/values.yaml -f chart/dev-values.yaml "$RELEASE_CHART" chart/ 
+
+
+
+
+          
+       
